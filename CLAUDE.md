@@ -1,56 +1,14 @@
-# CLAUDE.md
+# ConfettiSwiftUI
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Pure SwiftUI confetti library. `Package.swift` declares Swift tools 5.3, iOS 14+, macOS 11+, tvOS 14+ and watchOS 7+. Preserve those deployment targets when changing APIs.
 
-## Project Overview
+## Build and verification
 
-ConfettiSwiftUI is a pure SwiftUI library for creating customizable confetti cannon animations. It supports iOS 14+, macOS 11+, tvOS 14+, and watchOS 7+.
-
-## Build Commands
-
-```bash
-# Build the package
-swift build
-
-# Run tests
-swift test
-
-# Build for a specific platform
-swift build -Xswiftc "-sdk" -Xswiftc "$(xcrun --sdk iphonesimulator --show-sdk-path)" -Xswiftc "-target" -Xswiftc "x86_64-apple-ios14.0-simulator"
-```
+Run `swift build` and `swift test` from the repository. The current XCTest is an API-construction smoke test without assertions; it does not verify animation behavior. For animation or platform changes, exercise the affected behavior in a SwiftUI host on the relevant platform. Select an available simulator and architecture rather than hardcoding an Intel simulator target.
 
 ## Architecture
 
-### Core Components
-
-- **`ConfettiCannon<T: Equatable>`** (`Sources/ConfettiSwiftUI.swift`): The main view component that orchestrates the animation. Uses a generic trigger binding that fires on any value change.
-
-- **`ConfettiConfig`** (`Sources/ConfettiSwiftUI.swift`): ObservableObject that holds all configuration parameters (num, colors, radius, angles, repetitions, etc.) and computed animation durations.
-
-- **`View.confettiCannon()`** (`Sources/View+ConfettiCannon.swift`): View modifier extension providing the primary API for consumers.
-
-### Animation Flow
-
-1. `ConfettiCannon` observes trigger changes via `.onChange(of:)`
-2. For each repetition, it schedules a new `ConfettiContainer` with haptic feedback
-3. `ConfettiContainer` spawns `num` individual `ConfettiView` instances
-4. Each `ConfettiView` animates in two phases:
-   - Explosion phase: moves outward within the opening/closing angle bounds
-   - Rain phase: falls downward with optional fade out
-
-### Confetti Types
-
-`ConfettiType` enum supports:
-- `.shape(.circle | .triangle | .square | .slimRectangle | .roundedCross)`
-- `.text(String)` for emoji/text
-- `.sfSymbol(symbolName:)` for SF Symbols
-- `.image(String)` for asset images
-
-### Custom Shapes
-
-Located in `Sources/Shapes/`:
-- `Triangle`, `SlimRectangle`, `RoundedCross` - custom SwiftUI `Shape` implementations
-
-### Platform-Specific Code
-
-Haptic feedback uses `#if canImport(UIKit) && !os(tvOS) && !os(visionOS)` guards for iOS-only `UIImpactFeedbackGenerator`.
+- `Sources/View+ConfettiCannon.swift` exposes the `confettiCannon(trigger:...)` modifier; `ConfettiCannon<T: Equatable>` in `Sources/ConfettiSwiftUI.swift` observes changes to its trigger binding.
+- `ConfettiConfig` owns animation parameters and computed durations. Each repetition schedules a `ConfettiContainer`, whose particles animate through explosion and rain phases.
+- `ConfettiType` supports built-in shapes, text, SF Symbols and asset images. Custom `Triangle`, `SlimRectangle` and `RoundedCross` shapes live in `Sources/Shapes/`.
+- Keep haptic feedback behind the existing `canImport(UIKit) && !os(tvOS) && !os(visionOS)` guard. Preserve the cross-platform library and shared configuration instead of introducing separate platform implementations.
